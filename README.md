@@ -1,4 +1,4 @@
 # blackjack
-Android blackjack app /n
+Android blackjack app
 
 Blackjack program
