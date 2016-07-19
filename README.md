@@ -1,4 +1,4 @@
 # blackjack
 Android blackjack app
 
-Blackjack program
+Blackjack program to test basic Android functionality, XML, image display, and file retrieval. Rules are probably not done correctly, I am not an expert on card games, but resultant app is functional. and bug-free as far as I can determine.
