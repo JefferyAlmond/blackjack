@@ -121,7 +121,7 @@
         <LinearLayout
             android:orientation="vertical"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content">
+            android:layout_height="fill_parent">
 
             <TextView
                 android:layout_width="wrap_content"
@@ -151,75 +151,95 @@
                 android:id="@+id/dealerScoreText"
                 android:textColor="@color/yellow" />
 
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/textView3" />
+
             <LinearLayout
                 android:orientation="horizontal"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content">
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1">
 
                 <Button
                     style="?android:attr/buttonStyleSmall"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="+10"
-                    android:id="@+id/betPlusButton" />
+                    android:layout_width="fill_parent"
+                    android:layout_height="match_parent"
+                    android:text="BET +10"
+                    android:id="@+id/betPlus10Button"
+                    android:layout_weight="1" />
 
                 <Button
                     style="?android:attr/buttonStyleSmall"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="-10"
-                    android:id="@+id/betMinusButton" />
+                    android:layout_width="fill_parent"
+                    android:layout_height="match_parent"
+                    android:text="BET +100"
+                    android:id="@+id/betPlus100Button"
+                    android:layout_weight="1" />
             </LinearLayout>
 
             <Button
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/shoe_mode_on"
-                android:id="@+id/shoeModeButton" />
+                android:id="@+id/shoeModeButton"
+                android:layout_weight="1" />
 
         </LinearLayout>
 
         <LinearLayout
             android:orientation="vertical"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+            android:layout_height="fill_parent"
             android:gravity="center">
 
             <Button
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_height="fill_parent"
                 android:text="@string/new_game"
                 android:id="@+id/newGameButton"
                 android:gravity="center"
-                android:visibility="invisible" />
+                android:visibility="invisible"
+                android:layout_weight="1" />
 
             <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
+                android:layout_width="match_parent"
+                android:layout_height="fill_parent"
                 android:text="@string/player_wins"
                 android:id="@+id/winnerTextView"
                 android:gravity="center"
                 android:textColor="@color/yellow"
-                android:visibility="invisible" />
+                android:visibility="invisible"
+                android:layout_weight="1" />
         </LinearLayout>
 
         <LinearLayout
             android:orientation="vertical"
-            android:layout_width="match_parent"
+            android:layout_width="wrap_content"
             android:layout_height="match_parent"
             android:gravity="right">
 
             <Button
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="@string/hit"
-                android:id="@+id/hitButton" />
+                android:id="@+id/hitButton"
+                android:layout_weight="1" />
+
+            <Button
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/stand"
+                android:id="@+id/standButton"
+                android:layout_weight="1" />
 
             <Button
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="@string/stand"
-                android:id="@+id/standButton" />
+                android:text="@string/double_down"
+                android:id="@+id/doubleDownButton"
+                android:layout_weight="1" />
         </LinearLayout>
 
     </LinearLayout>
