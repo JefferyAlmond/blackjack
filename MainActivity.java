@@ -21,7 +21,7 @@ public class MainActivity extends ActionBarActivity {
 
     TextView totalCashTextView, playerBetTextView, playerScoreTextView, dealerScoreTextView, winnerTextView;
 
-    Button betPlusButton, betMinusButton, shoeModeButton, hitButton, standButton, newGameButton;
+    Button betPlus10Button, betPlus100Button, shoeModeButton, hitButton, standButton, newGameButton, doubleDownButton;
 
     ImageView playerCard1, playerCard2, playerCard3, playerCard4, playerCard5;
     ImageView dealerCard1, dealerCard2, dealerCard3, dealerCard4, dealerCard5;
@@ -34,15 +34,17 @@ public class MainActivity extends ActionBarActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        //on initialization of app
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        playing = false;
-        shoeMode = true;
+        playing = false; //certain actions only available when "playing" is active
+        shoeMode = true; //shoe mode allows for repeat cards. See method "repeatCard" for details
         playerStands = false;
         dealerStands = false;
-        playerCash = 1000; //starting cash
-        playerBet = 100;
+        playerCash = 1000;  //default starting cash
+        playerBet = 100;    //minimum bet
 
         totalCashTextView = (TextView) findViewById(R.id.totalCashText);
         playerBetTextView = (TextView) findViewById(R.id.currentBetText);
@@ -50,12 +52,13 @@ public class MainActivity extends ActionBarActivity {
         dealerScoreTextView = (TextView) findViewById(R.id.dealerScoreText);
         winnerTextView = (TextView) findViewById(R.id.winnerTextView);
 
-        betPlusButton = (Button) findViewById(R.id.betPlusButton);
-        betMinusButton = (Button) findViewById(R.id.betMinusButton);
+        betPlus10Button = (Button) findViewById(R.id.betPlus10Button);
+        betPlus100Button = (Button) findViewById(R.id.betPlus100Button);
         shoeModeButton = (Button) findViewById(R.id.shoeModeButton);
         hitButton = (Button) findViewById(R.id.hitButton);
         standButton = (Button) findViewById(R.id.standButton);
         newGameButton = (Button) findViewById(R.id.newGameButton);
+        doubleDownButton = (Button) findViewById(R.id.doubleDownButton);
 
         setButtonOnClickListeners();
 
@@ -75,92 +78,103 @@ public class MainActivity extends ActionBarActivity {
     }
 
     private void newGame() {
-
+        //on new game selected
         playing = true;
         playerStands = false;
         dealerStands = false;
+        playerBet = 100;    //reset to minimum bet
 
         playerCards = new hand();
         dealerCards = new hand();
 
-        //these elements will be shown upon game completion
-        winnerTextView.setVisibility(View.INVISIBLE);
-        newGameButton.setVisibility(View.INVISIBLE);
+        winnerTextView.setVisibility(View.INVISIBLE);   //hide winner message
+        newGameButton.setVisibility(View.INVISIBLE);    //hide New Game button
+        dealerScoreTextView.setVisibility(View.INVISIBLE);  //hide dealer score until game over
 
-        //set all player cards to blank
-        for (ImageView playerCardImage : playerCardImages) {
+        for (ImageView playerCardImage : playerCardImages) {    //set all player cards blank
             playerCardImage.setImageResource(R.drawable.blank);
             playerCardImage.setVisibility(View.INVISIBLE);
         }
-        
-        //set all dealer cards to blank
-        for (ImageView dealerCardImage : dealerCardImages) {
+
+        for (ImageView dealerCardImage : dealerCardImages) {    //set all dealer cards blank
             dealerCardImage.setImageResource(R.drawable.blank);
             dealerCardImage.setVisibility(View.INVISIBLE);
         }
 
-        //blackjack default deals two cards to each player
+        //first dealer card is hidden
+        dealerCardImages[0].setImageResource(R.drawable.card_back);
+
+        //deal 2 cards to each player
         dealCard(playerCards);
         dealCard(dealerCards);
         dealCard(playerCards);
         dealCard(dealerCards);
+
+        //rarely-used code in the event two aces are dealt on the first hand
+        if (playerCards.score > 21){
+            playerCards.decAces();
+            playerCards.decScore();
+        }
+        if (dealerCards.score > 21){
+            dealerCards.decAces();
+            dealerCards.decScore();
+        }
 
         updateCards();
     }
 
-    //update card images and player cash amount
     private void updateCards(){
-        for (int i = 0; i < playerCards.cards.size(); i++){
-            //construct a string based on value of card, retrieve image based on string name
-            //there is probably a more elegant way of doing this, but this method functions
+        //refresh view of cards, scores, and update messages
+        for (int i = 0; i < playerCards.cards.size(); i++){ //update all player card images
             String s = ("card_" + playerCards.cards.get(i).number + "_of_" + playerCards.cards.get(i).suit);
             int id = getResources().getIdentifier(s, "drawable", getPackageName());
             playerCardImages[i].setVisibility(View.VISIBLE);
             playerCardImages[i].setImageResource(id);
         }
-        for (int i = 0; i < dealerCards.cards.size(); i++){
+        for (int i = 1; i < dealerCards.cards.size(); i++){ //update all dealer card images EXCEPT first card - note starting value of i
             String s = ("card_" + dealerCards.cards.get(i).number + "_of_" + dealerCards.cards.get(i).suit);
             int id = getResources().getIdentifier(s, "drawable", getPackageName());
             dealerCardImages[i].setVisibility(View.VISIBLE);
             dealerCardImages[i].setImageResource(id);
         }
 
-        totalCashTextView.setText(getResources().getString(R.string.total_cash) + playerCash);
-        playerBetTextView.setText(getResources().getString(R.string.current_bet) + playerBet);
-        playerScoreTextView.setText(getResources().getString(R.string.player_score) + playerCards.score);
-        dealerScoreTextView.setText(getResources().getString(R.string.dealer_score) + dealerCards.score);
+        //first dealer card is hidden
+        dealerCardImages[0].setVisibility(View.VISIBLE);
+        dealerCardImages[0].setImageResource(R.drawable.card_back);
 
+        winnerTextView.setVisibility(View.INVISIBLE); //hide double down error message. make sure to call updateCards BEFORE setting the message!
+
+        //update player cash and bet
+        totalCashTextView.setText(getResources().getString(R.string.total_cash) + " " + playerCash);
+        playerBetTextView.setText(getResources().getString(R.string.current_bet) + " " + playerBet);
+        playerScoreTextView.setText(getResources().getString(R.string.player_score) + " " + playerCards.score);
+        dealerScoreTextView.setText(getResources().getString(R.string.dealer_score) + " " + dealerCards.score);
     }
 
-    //this section is largely unnecessary, as later versions of Android can recreate these methods with shorter XML statements
-    //this was the method used in the tutorial I was following, however
     private void setButtonOnClickListeners() {
+        //set button listeners. this was done before I learned it could be done via XMP but is being kept for posterity
 
-        betPlusButton.setOnClickListener(new View.OnClickListener(){
+        betPlus10Button.setOnClickListener(new View.OnClickListener() { //increase bet by 10, only available while game is active
             @Override
             public void onClick(View v) {
-                if (!playing){
-                    playerBet += 10; //10 is the default value based on starting cash of 1000 and default bet of 100
+                if (playing && playerBet <= playerCash - 10) {
+                    playerBet += 10;
                     updateCards();
                 }
             }
         });
 
-        betMinusButton.setOnClickListener(new View.OnClickListener(){
+        betPlus100Button.setOnClickListener(new View.OnClickListener(){ //increase bet by 100, only available while game is active
             @Override
             public void onClick(View v) {
-                if (!playing){
-                    if (playerBet != 0){ //only functions if bet is positive to prevent negative betting
-                        playerBet -= 10;
-                    }
+                if (playing && playerBet<=playerCash-100){
+                    playerBet += 100;
                     updateCards();
                 }
             }
         });
 
-        //"shoe mode" allows duplicate cards to prevent card-counting, simulating casino "shoe" device 
-        //cannot be toggled while game is in session
-        shoeModeButton.setOnClickListener(new View.OnClickListener(){
+        shoeModeButton.setOnClickListener(new View.OnClickListener(){   //toggle shoe mode, only available while game is inactive
             @Override
             public void onClick(View v) {
                 if (!playing){
@@ -175,22 +189,25 @@ public class MainActivity extends ActionBarActivity {
             }
         });
 
-        hitButton.setOnClickListener(new View.OnClickListener(){
+        hitButton.setOnClickListener(new View.OnClickListener(){    //player hit
             @Override
             public void onClick(View v) {
-                if (playing){ //button only active if game is active
+                if (playing){
                     dealCard(playerCards);
                     updateCards();
+                    //this code accounts for the variable value of aces. if the player goes over 21, the game checks to see if an ace is present, whose value can be changed from 11 to 1
                     if (playerCards.score > 21){
-                        if (playerCards.aces > 0){ //checks for aces. in case of score > 21, ace count is decremented by 1 and score by 10, to account for variable value of aces
+                        if (playerCards.aces > 0){
                             playerCards.decAces();
                             playerCards.decScore();
                             updateCards();
                         }else{
-                            dealerWins(); //if there are no aces left to decrement
+                            //no aces to decrement means player busts
+                            dealerWins();
                         }
                     }
-                    if (playerCards.cards.size() >= 5 && playerCards.score <= 21){ //"five card charlie" rule always wins
+                    if (playerCards.cards.size() >= 5 && playerCards.score <= 21){
+                        //five card charlie always wins
                         playerWins();
                     }
                     dealerTurn();
@@ -198,12 +215,12 @@ public class MainActivity extends ActionBarActivity {
             }
         });
 
-        standButton.setOnClickListener(new View.OnClickListener(){
+        standButton.setOnClickListener(new View.OnClickListener(){  //player stands and passes turn to dealer
             @Override
             public void onClick(View v) {
                 if (playing){
                     playerStands = true;
-                    if (dealerStands){ //final score comparison if both players stand
+                    if (dealerStands){
                         scoreCompare();
                     }
                     dealerTurn();
@@ -211,22 +228,61 @@ public class MainActivity extends ActionBarActivity {
             }
         });
 
-        newGameButton.setOnClickListener(new View.OnClickListener(){
+        newGameButton.setOnClickListener(new View.OnClickListener(){    //begins new game, only available upon win or loss
             @Override
             public void onClick(View v) {
                 newGame();
             }
         });
+
+        doubleDownButton.setOnClickListener(new View.OnClickListener(){    //double down gives player 1 more card and double bet
+            @Override
+            public void onClick(View v) {
+                if (playing){
+                    if (playerCards.score >= 9 && playerCards.score <=11){ //can only double down on 9, 10, 11
+                        playerStands = true;
+                        playerBet *= 2;   //diuble bet
+                        dealCard(playerCards);
+                        if (playerCards.score > 21){
+                            if (playerCards.aces > 0){
+                                playerCards.decAces();
+                                playerCards.decScore();
+                                updateCards();
+                            }else{
+                                //no aces to decrement means player busts
+                                dealerWins();
+                            }
+                        }
+                        if (playerCards.cards.size() >= 5 && playerCards.score <= 21){
+                            //five card charlie always wins
+                            playerWins();
+                        }
+                        dealerTurn();
+                    }else{
+                        winnerTextView.setVisibility(View.VISIBLE); //display error message
+                        winnerTextView.setText(R.string.doubleDownError);
+                    }
+                }
+            }
+        });
     }
 
-    //check both players for bust, then compares scores
-    private void scoreCompare() {
+    private void scoreCompare() {   //check to see whose score is higher
         updateCards();
-        if (playerCards.score > 21){    //player score checked first, since ties awarded to dealer
+
+        if (playerCards.score == 21 && dealerCards.score == 21){    //blackjack (21 with 2 cards) beats any other 21
+            if (dealerCards.cards.size() == 2){
+                dealerWins();
+            }else if (playerCards.cards.size() == 2){
+                playerWins();
+            }
+        }
+
+        if (playerCards.score > 21){
             dealerWins();
         }else if (dealerCards.score > 21){
             playerWins();
-        }else if (playerCards.score > dealerCards.score){
+        }else if (playerCards.score > dealerCards.score){ //ties awarded to dealer
             playerWins();
         }else{
             dealerWins();
@@ -234,30 +290,48 @@ public class MainActivity extends ActionBarActivity {
     }
 
     private void dealerWins() {
-        playerCash -= playerBet;
+        playerCash -= playerBet; //player loses bet
         playing = false;
         updateCards();
-        winnerTextView.setText(R.string.dealer_wins); //display dealer victory message
+        winnerTextView.setText(R.string.dealer_wins); //display loss message
         winnerTextView.setVisibility(View.VISIBLE);
-        newGameButton.setVisibility(View.VISIBLE);
+        newGameButton.setVisibility(View.VISIBLE); //new game now available
+        dealerScoreTextView.setVisibility(View.VISIBLE); //dealer score now visible
+
+        //display hidden dealer card
+        String s = ("card_" + dealerCards.cards.get(0).number + "_of_" + dealerCards.cards.get(0).suit);
+        int id = getResources().getIdentifier(s, "drawable", getPackageName());
+        dealerCardImages[0].setVisibility(View.VISIBLE);
+        dealerCardImages[0].setImageResource(id);
+
     }
 
     private void playerWins(){
-        playerCash += playerBet;
+        playerCash += playerBet; //player wins bet
         playing = false;
         updateCards();
-        winnerTextView.setText(R.string.player_wins); //display player victory message
+        winnerTextView.setText(R.string.player_wins); //display win message
         winnerTextView.setVisibility(View.VISIBLE);
-        newGameButton.setVisibility(View.VISIBLE);
+        newGameButton.setVisibility(View.VISIBLE); //new game now available
+        dealerScoreTextView.setVisibility(View.VISIBLE); //dealer score now visible
+
+        //display hidden dealer card
+        String s = ("card_" + dealerCards.cards.get(0).number + "_of_" + dealerCards.cards.get(0).suit);
+        int id = getResources().getIdentifier(s, "drawable", getPackageName());
+        dealerCardImages[0].setVisibility(View.VISIBLE);
+        dealerCardImages[0].setImageResource(id);
+
     }
 
-    //assume dealer always hits on 16 or lower, otherwise stands
     private void dealerTurn(){
         if (playing){
-            if (dealerCards.score < 17){
+            if (dealerCards.score < 17){ //dealer always hits on 16 or lower
                 dealCard(dealerCards);
                 updateCards();
-                if (dealerCards.score > 21){ //checks for aces. in case of score > 21, ace count is decremented by 1 and score by 10, to account for variable value of aces
+
+                //this code accounts for the variable value of aces.
+                // if the dealer goes over 21, the game checks to see if an ace is present, whose value can be changed from 11 to 1
+                if (dealerCards.score > 21){
                     if (dealerCards.aces > 0){
                         dealerCards.decAces();
                         dealerCards.decScore();
@@ -266,15 +340,26 @@ public class MainActivity extends ActionBarActivity {
                         playerWins();
                     }
                 }
-                if (dealerCards.cards.size() >= 5 && dealerCards.score <= 21){ //"five card charlie" rule always wins
+
+                //five card charlie always wins
+                if (dealerCards.cards.size() >= 5 && dealerCards.score <= 21){
                     dealerWins();
                 }
             }else{
                 dealerStands = true;
+                updateCards();
+                winnerTextView.setText(R.string.dealer_stands); //display dealer stands message
+                winnerTextView.setVisibility(View.VISIBLE);
                 if (playerStands){
                     scoreCompare();
                 }
             }
+
+
+            if (playerStands){
+                dealerTurn();
+            }
+
         }
     }
 
@@ -300,8 +385,8 @@ public class MainActivity extends ActionBarActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    //"card" consists of number and suit, plus getters and setters
     class card{
+        //card has a suit and a number
         private String suit;
         private String number;
 
@@ -327,8 +412,8 @@ public class MainActivity extends ActionBarActivity {
         }
     }
 
-    //"hand" is a collection of 5 cards, aces tracked seperately to account for variable ace value
     class hand{
+        //hand is an array of cards, keeps track of overall score and how many aces have not been decremented from 11 to 1
         private int aces = 0;
         private int score = 0;
         private ArrayList<card> cards = new ArrayList<>();
@@ -346,16 +431,17 @@ public class MainActivity extends ActionBarActivity {
         }
 
         public void decScore(){
-            this.score = this.score - 10; //score decreased by 10 to account for ace value of either 1 or 11
+            this.score = this.score - 10;
         }
 
     }
 
-    //add a card to either player or dealer hand
     public void dealCard(hand hand){
+        //add card to a hand
         boolean repeatCheck = true;
         card nextCard = new card();
 
+        //check if selected card is already in eithr hand, reroll if it is
         if (!shoeMode){
             while (repeatCheck){
                 generateCard(nextCard);
@@ -367,8 +453,9 @@ public class MainActivity extends ActionBarActivity {
             generateCard(nextCard);
         }
 
+        //add to aces if ace is dealt
         if (nextCard.number.equals("ace")){
-            hand.incAces(); //increase ace count if ace is dealt
+            hand.incAces();
         }
 
         hand.cards.add(nextCard);
@@ -376,9 +463,8 @@ public class MainActivity extends ActionBarActivity {
         updateCards();
     }
 
-    //create a random card with 1 of 4 suits and 13 face values
-    //"breaks" are supposed to be bad form, but greatly simplified this code
     public void generateCard(card nextCard){
+        //create 1 of 4 suits and 1 of 13 numbers
         int dealSuit;
         int dealNumber;
         String checkSuit;
@@ -386,8 +472,7 @@ public class MainActivity extends ActionBarActivity {
 
         Random r = new Random();
         dealSuit = r.nextInt(4) + 1;
-        
-        //randomly choose from 1 of 4 suits
+
         switch (dealSuit){
             case 1:
                 checkSuit = "hearts";
@@ -403,7 +488,6 @@ public class MainActivity extends ActionBarActivity {
                 break;
         }
 
-        //randomly choose from 1 of 13 face values
         dealNumber = r.nextInt(13) + 1;
 
         switch (dealNumber){
@@ -428,9 +512,8 @@ public class MainActivity extends ActionBarActivity {
         nextCard.setNumber(checkNumber);
     }
 
-    //correlates card face value string to numerical value int
-    //"100" was to detect errors
     public int faceValue(card card){
+        //determine int value for card number. probably could have saved code for numbers 2-10 somehow but this way works for all cards
         switch (card.number){
             case "2":
                 return 2;
@@ -457,15 +540,14 @@ public class MainActivity extends ActionBarActivity {
             case "king":
                 return 10;
             case "ace":
-                return 11;
+                return 11;  //ace is worth 11 until it is decremented
             default:
-                return 100;
+                return 100; //detect errors in card generation
         }
     }
 
-    //checks for repeat cards already in a hand. only active if shoe mode is on
-    //check new card against all existing cards in both players' hands
     public boolean repeatCard(String number, String suit){
+        //check both hands to see if a card already exists
         for (int i = 0; i < playerCards.cards.size(); i++){
             if ((suit.equals(playerCards.cards.get(i).suit))&&(number.equals(playerCards.cards.get(i).number))){
                 return true;
