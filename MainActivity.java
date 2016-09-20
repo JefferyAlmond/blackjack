@@ -1,7 +1,19 @@
-package com.example.jeffery.blackjack;
+/*
+* A simple blackjack app. Goal is to get a higher score than the dealer, without going over 21.
+* Ties go to dealer. Dealer always hits on a score of less than 17, stands otherwise.
+* Natural blackjack (ace + face card) beats any other 21. Five card charlie beats any score.
+* Double down on score of 9, 10, or 11 to take 1 more card and double bet.
+* Surrender ends the game and gives up half your bet if things look hopeless.
+* Shoe mode allows duplicate cards to show up.
+* */
 
+package com.jalmond.blackjack;
+
+import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.Bundle;
-import android.support.v7.app.ActionBarActivity;
+import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -13,7 +25,7 @@ import java.util.ArrayList;
 import java.util.Random;
 
 
-public class MainActivity extends ActionBarActivity {
+public class MainActivity extends AppCompatActivity {
 
     private int playerCash;
     private int playerBet;
@@ -21,7 +33,7 @@ public class MainActivity extends ActionBarActivity {
 
     TextView totalCashTextView, playerBetTextView, playerScoreTextView, dealerScoreTextView, winnerTextView;
 
-    Button betPlus10Button, betPlus100Button, shoeModeButton, hitButton, standButton, newGameButton, doubleDownButton;
+    Button betPlus10Button, betPlus100Button, shoeModeButton, hitButton, standButton, newGameButton, doubleDownButton, surrenderButton;
 
     ImageView playerCard1, playerCard2, playerCard3, playerCard4, playerCard5;
     ImageView dealerCard1, dealerCard2, dealerCard3, dealerCard4, dealerCard5;
@@ -29,6 +41,7 @@ public class MainActivity extends ActionBarActivity {
     ImageView playerCardImages[] = {playerCard1, playerCard2, playerCard3, playerCard4, playerCard5};
     ImageView dealerCardImages[] = {dealerCard1, dealerCard2, dealerCard3, dealerCard4, dealerCard5};
 
+    //"hand" object consists of 5 "card' objects, score, ace count
     hand playerCards;
     hand dealerCards;
 
@@ -59,7 +72,9 @@ public class MainActivity extends ActionBarActivity {
         standButton = (Button) findViewById(R.id.standButton);
         newGameButton = (Button) findViewById(R.id.newGameButton);
         doubleDownButton = (Button) findViewById(R.id.doubleDownButton);
+        surrenderButton = (Button) findViewById(R.id.surrenderButton);
 
+        //this could have been done in XML, initial tutorial was based on older android version
         setButtonOnClickListeners();
 
         playerCardImages[0] = (ImageView) findViewById(R.id.imagePlayerCard1);
@@ -74,7 +89,10 @@ public class MainActivity extends ActionBarActivity {
         dealerCardImages[3] = (ImageView) findViewById(R.id.imageDealerCard4);
         dealerCardImages[4] = (ImageView) findViewById(R.id.imageDealerCard5);
 
-        newGame();
+        //player total cash and current bet
+        totalCashTextView.setText(getResources().getString(R.string.total_cash) + " " + playerCash);
+        playerBetTextView.setText(getResources().getString(R.string.current_bet) + " " + playerBet);
+        newGameButton.setVisibility(View.VISIBLE);
     }
 
     private void newGame() {
@@ -82,7 +100,7 @@ public class MainActivity extends ActionBarActivity {
         playing = true;
         playerStands = false;
         dealerStands = false;
-        playerBet = 100;    //reset to minimum bet
+        //playerBet = 100;    //reset to minimum bet
 
         playerCards = new hand();
         dealerCards = new hand();
@@ -90,6 +108,13 @@ public class MainActivity extends ActionBarActivity {
         winnerTextView.setVisibility(View.INVISIBLE);   //hide winner message
         newGameButton.setVisibility(View.INVISIBLE);    //hide New Game button
         dealerScoreTextView.setVisibility(View.INVISIBLE);  //hide dealer score until game over
+        betPlus10Button.setVisibility(View.INVISIBLE);  //bet & shoe mode buttons cannot be used during play
+        betPlus100Button.setVisibility(View.INVISIBLE);
+        shoeModeButton.setVisibility(View.INVISIBLE);
+        hitButton.setVisibility(View.VISIBLE); //hit, stand, double down, surrender unavailable outside play
+        standButton.setVisibility(View.VISIBLE);
+        doubleDownButton.setVisibility(View.VISIBLE);
+        surrenderButton.setVisibility(View.VISIBLE);
 
         for (ImageView playerCardImage : playerCardImages) {    //set all player cards blank
             playerCardImage.setImageResource(R.drawable.blank);
@@ -126,16 +151,39 @@ public class MainActivity extends ActionBarActivity {
     private void updateCards(){
         //refresh view of cards, scores, and update messages
         for (int i = 0; i < playerCards.cards.size(); i++){ //update all player card images
+            //uses bitmapFactory to reduce card image size, as default card image sizes cause memory issues. how long did it take me to figure this out? don't ask.
             String s = ("card_" + playerCards.cards.get(i).number + "_of_" + playerCards.cards.get(i).suit);
             int id = getResources().getIdentifier(s, "drawable", getPackageName());
+            int displayWidth = playerCardImages[i].getWidth();
+            BitmapFactory.Options options = new BitmapFactory.Options();
+            options.inJustDecodeBounds = true; //access card image size without loading it into memoru
+            BitmapFactory.decodeResource(getResources(), id, options);
+            int imageWidth = options.outWidth;
+            if (imageWidth > displayWidth){ //reduce size of card image based on size of display, saves memory
+                int widthRatio = Math.round((float) imageWidth / (float) displayWidth);
+                options.inSampleSize = widthRatio;
+            }
+            options.inJustDecodeBounds = false;
+            Bitmap scaledBitmap =  BitmapFactory.decodeResource(getResources(), id, options);
             playerCardImages[i].setVisibility(View.VISIBLE);
-            playerCardImages[i].setImageResource(id);
+            playerCardImages[i].setImageBitmap(scaledBitmap);
         }
         for (int i = 1; i < dealerCards.cards.size(); i++){ //update all dealer card images EXCEPT first card - note starting value of i
             String s = ("card_" + dealerCards.cards.get(i).number + "_of_" + dealerCards.cards.get(i).suit);
             int id = getResources().getIdentifier(s, "drawable", getPackageName());
+            int displayWidth = dealerCardImages[i].getWidth();
+            BitmapFactory.Options options = new BitmapFactory.Options();
+            options.inJustDecodeBounds = true;
+            BitmapFactory.decodeResource(getResources(), id, options);
+            int imageWidth = options.outWidth;
+            if (imageWidth > displayWidth){
+                int widthRatio = Math.round((float) imageWidth / (float) displayWidth);
+                options.inSampleSize = widthRatio;
+            }
+            options.inJustDecodeBounds = false;
+            Bitmap scaledBitmap =  BitmapFactory.decodeResource(getResources(), id, options);
             dealerCardImages[i].setVisibility(View.VISIBLE);
-            dealerCardImages[i].setImageResource(id);
+            dealerCardImages[i].setImageBitmap(scaledBitmap);
         }
 
         //first dealer card is hidden
@@ -149,17 +197,26 @@ public class MainActivity extends ActionBarActivity {
         playerBetTextView.setText(getResources().getString(R.string.current_bet) + " " + playerBet);
         playerScoreTextView.setText(getResources().getString(R.string.player_score) + " " + playerCards.score);
         dealerScoreTextView.setText(getResources().getString(R.string.dealer_score) + " " + dealerCards.score);
+
+        if (!playing){
+            //display hidden dealer card if game is over
+            String s = ("card_" + dealerCards.cards.get(0).number + "_of_" + dealerCards.cards.get(0).suit);
+            int id = getResources().getIdentifier(s, "drawable", getPackageName());
+            dealerCardImages[0].setVisibility(View.VISIBLE);
+            dealerCardImages[0].setImageResource(id);
+        }
     }
 
     private void setButtonOnClickListeners() {
-        //set button listeners. this was done before I learned it could be done via XMP but is being kept for posterity
+        //set button listeners. this was done before I learned it could be done via XML but is being kept for posterity
 
         betPlus10Button.setOnClickListener(new View.OnClickListener() { //increase bet by 10, only available while game is active
             @Override
             public void onClick(View v) {
-                if (playing && playerBet <= playerCash - 10) {
+                //increase bet by 10 if game not active. can you increase your bet during the game in blackjack? I don't know.
+                if (!playing && playerBet <= playerCash - 10) {
                     playerBet += 10;
-                    updateCards();
+                    playerBetTextView.setText(getResources().getString(R.string.current_bet) + " " + playerBet);
                 }
             }
         });
@@ -167,14 +224,15 @@ public class MainActivity extends ActionBarActivity {
         betPlus100Button.setOnClickListener(new View.OnClickListener(){ //increase bet by 100, only available while game is active
             @Override
             public void onClick(View v) {
-                if (playing && playerBet<=playerCash-100){
+                //increase bet by 100 if game not active
+                if (!playing && playerBet <= playerCash-100){
                     playerBet += 100;
-                    updateCards();
+                    playerBetTextView.setText(getResources().getString(R.string.current_bet) + " " + playerBet);
                 }
             }
         });
 
-        shoeModeButton.setOnClickListener(new View.OnClickListener(){   //toggle shoe mode, only available while game is inactive
+        shoeModeButton.setOnClickListener(new View.OnClickListener(){   //toggle shoe mode which allos repeat cards, only available while game is inactive
             @Override
             public void onClick(View v) {
                 if (!playing){
@@ -241,7 +299,7 @@ public class MainActivity extends ActionBarActivity {
                 if (playing){
                     if (playerCards.score >= 9 && playerCards.score <=11){ //can only double down on 9, 10, 11
                         playerStands = true;
-                        playerBet *= 2;   //diuble bet
+                        playerBet *= 2;   //double bet
                         dealCard(playerCards);
                         if (playerCards.score > 21){
                             if (playerCards.aces > 0){
@@ -265,9 +323,19 @@ public class MainActivity extends ActionBarActivity {
                 }
             }
         });
+
+        surrenderButton.setOnClickListener(new View.OnClickListener(){ //give up and only lose half bet
+            @Override
+            public void onClick(View v) {
+                if(playing){
+                    playerBet /= 2; //decrease bet by half
+                    dealerWins();
+                }
+            }
+        });
     }
 
-    private void scoreCompare() {   //check to see whose score is higher
+    private void scoreCompare() {   //check to see whose score is higher if neither player has busted and both elect to stand
         updateCards();
 
         if (playerCards.score == 21 && dealerCards.score == 21){    //blackjack (21 with 2 cards) beats any other 21
@@ -278,9 +346,9 @@ public class MainActivity extends ActionBarActivity {
             }
         }
 
-        if (playerCards.score > 21){
+        if (playerCards.score > 21){ //player busts
             dealerWins();
-        }else if (dealerCards.score > 21){
+        }else if (dealerCards.score > 21){ //dealer busts
             playerWins();
         }else if (playerCards.score > dealerCards.score){ //ties awarded to dealer
             playerWins();
@@ -289,7 +357,7 @@ public class MainActivity extends ActionBarActivity {
         }
     }
 
-    private void dealerWins() {
+    private void dealerWins() { //run when dealer declared winner
         playerCash -= playerBet; //player loses bet
         playing = false;
         updateCards();
@@ -297,16 +365,18 @@ public class MainActivity extends ActionBarActivity {
         winnerTextView.setVisibility(View.VISIBLE);
         newGameButton.setVisibility(View.VISIBLE); //new game now available
         dealerScoreTextView.setVisibility(View.VISIBLE); //dealer score now visible
+        playerBet = 100;    //reset to minimum bet
 
-        //display hidden dealer card
-        String s = ("card_" + dealerCards.cards.get(0).number + "_of_" + dealerCards.cards.get(0).suit);
-        int id = getResources().getIdentifier(s, "drawable", getPackageName());
-        dealerCardImages[0].setVisibility(View.VISIBLE);
-        dealerCardImages[0].setImageResource(id);
-
+        betPlus10Button.setVisibility(View.VISIBLE);  //bet & shoe mode buttons can only be used between games
+        betPlus100Button.setVisibility(View.VISIBLE);
+        shoeModeButton.setVisibility(View.VISIBLE);
+        hitButton.setVisibility(View.INVISIBLE); //hit, stand, double, surrender buttons cannot be used between games
+        standButton.setVisibility(View.INVISIBLE);
+        doubleDownButton.setVisibility(View.INVISIBLE);
+        surrenderButton.setVisibility(View.INVISIBLE);
     }
 
-    private void playerWins(){
+    private void playerWins(){ //run when player declared winner
         playerCash += playerBet; //player wins bet
         playing = false;
         updateCards();
@@ -314,16 +384,18 @@ public class MainActivity extends ActionBarActivity {
         winnerTextView.setVisibility(View.VISIBLE);
         newGameButton.setVisibility(View.VISIBLE); //new game now available
         dealerScoreTextView.setVisibility(View.VISIBLE); //dealer score now visible
+        playerBet = 100;    //reset to minimum bet
 
-        //display hidden dealer card
-        String s = ("card_" + dealerCards.cards.get(0).number + "_of_" + dealerCards.cards.get(0).suit);
-        int id = getResources().getIdentifier(s, "drawable", getPackageName());
-        dealerCardImages[0].setVisibility(View.VISIBLE);
-        dealerCardImages[0].setImageResource(id);
-
+        betPlus10Button.setVisibility(View.VISIBLE);  //bet & shoe mode buttons can only be used between games
+        betPlus100Button.setVisibility(View.VISIBLE);
+        shoeModeButton.setVisibility(View.VISIBLE);
+        hitButton.setVisibility(View.INVISIBLE); //hit, stand, double, surrender buttons cannot be used between games
+        standButton.setVisibility(View.INVISIBLE);
+        doubleDownButton.setVisibility(View.INVISIBLE);
+        surrenderButton.setVisibility(View.INVISIBLE);
     }
 
-    private void dealerTurn(){
+    private void dealerTurn(){ //dealer action, method called after player action resolved
         if (playing){
             if (dealerCards.score < 17){ //dealer always hits on 16 or lower
                 dealCard(dealerCards);
@@ -355,7 +427,7 @@ public class MainActivity extends ActionBarActivity {
                 }
             }
 
-
+            //if the player stands, turn goes to dealer again until dealer stands or busts
             if (playerStands){
                 dealerTurn();
             }
@@ -377,9 +449,9 @@ public class MainActivity extends ActionBarActivity {
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
 
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
+        if (id == R.id.aboutBlackjack) {
+            Intent intent = new Intent(this, InfoScreen.class);
+            startActivity(intent);
         }
 
         return super.onOptionsItemSelected(item);
@@ -395,21 +467,21 @@ public class MainActivity extends ActionBarActivity {
             this.number = null;
         }
 
-        public void setSuit(String newSuit){
+        public void setSuit(String newSuit){ //suit setter
             this.suit = newSuit;
         }
 
         public String getSuit(){
             return suit;
-        }
+        } //suit getter
 
         public void setNumber(String newNumber){
             this.number = newNumber;
-        }
+        } //number setter
 
         public String getNumber(){
             return number;
-        }
+        } //number getter
     }
 
     class hand{
@@ -431,17 +503,18 @@ public class MainActivity extends ActionBarActivity {
         }
 
         public void decScore(){
+            //score can only be decreased if an ace is changes from 11 to 1, thus decreasing score by 10
             this.score = this.score - 10;
         }
 
     }
 
     public void dealCard(hand hand){
-        //add card to a hand
+        //add card to a hand,  adjust score and ace count
         boolean repeatCheck = true;
         card nextCard = new card();
 
-        //check if selected card is already in eithr hand, reroll if it is
+        //check if selected card is already in either hand, reroll if it is
         if (!shoeMode){
             while (repeatCheck){
                 generateCard(nextCard);
@@ -548,6 +621,7 @@ public class MainActivity extends ActionBarActivity {
 
     public boolean repeatCard(String number, String suit){
         //check both hands to see if a card already exists
+        //this code is never used if shoe mode is active
         for (int i = 0; i < playerCards.cards.size(); i++){
             if ((suit.equals(playerCards.cards.get(i).suit))&&(number.equals(playerCards.cards.get(i).number))){
                 return true;
