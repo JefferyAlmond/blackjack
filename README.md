@@ -7,4 +7,4 @@ Five card charlie beats any score. Ties go to dealer. Dealer always hits on a sc
 
 Blackjack has many rule variations and some are easier to implement than others. I would rather talk to an expert on blackjack before deciding what to include and not include, but this game is functional and bug-free as far as I can determine.
 
-Does not include strings or image files.
+Does not include strings or image files, but a working version of this app can be downloaded for free on Google Play at https://play.google.com/store/apps/details?id=com.jalmond.blackjack
